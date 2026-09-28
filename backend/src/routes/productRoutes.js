@@ -1,8 +1,13 @@
 import { Router } from 'express';
+
 import * as controller from '../controllers/productController.js';
+import * as reviewController from '../controllers/productReviewController.js';
 import * as uploadController from '../controllers/uploadController.js';
+
 import { protect, authorize } from '../middleware/auth.js';
+
 import { validate } from '../middleware/validate.js';
+
 import {
   createProductSchema,
   updateProductSchema,
@@ -15,6 +20,25 @@ const router = Router();
 // ─────────────────────────────────────────────
 
 router.get('/', controller.listProducts);
+
+// ─────────────────────────────────────────────
+// Product reviews
+// ─────────────────────────────────────────────
+
+router.get(
+  '/:productId/reviews',
+  reviewController.listProductReviews
+);
+
+router.get(
+  '/:productId/reviews/summary',
+  reviewController.getProductReviewSummary
+);
+
+router.post(
+  '/:productId/reviews',
+  reviewController.createProductReview
+);
 
 // ─────────────────────────────────────────────
 // Admin routes
@@ -34,6 +58,31 @@ router.get(
   controller.lowStockProducts
 );
 
+// ─────────────────────────────────────────────
+// Admin review moderation
+// ─────────────────────────────────────────────
+
+router.get(
+  '/admin/reviews',
+  protect,
+  authorize('admin', 'staff'),
+  reviewController.listPendingReviews
+);
+
+router.patch(
+  '/admin/reviews/:reviewId/approve',
+  protect,
+  authorize('admin', 'staff'),
+  reviewController.approveReview
+);
+
+router.patch(
+  '/admin/reviews/:reviewId/reject',
+  protect,
+  authorize('admin', 'staff'),
+  reviewController.rejectReview
+);
+
 router.get(
   '/admin/:id',
   protect,
@@ -46,29 +95,6 @@ router.post(
   protect,
   authorize('admin', 'staff'),
   uploadController.uploadImage
-);
-
-router.post(
-  '/',
-  protect,
-  authorize('admin', 'staff'),
-  validate(createProductSchema),
-  controller.createProduct
-);
-
-router.patch(
-  '/:id',
-  protect,
-  authorize('admin', 'staff'),
-  validate(updateProductSchema),
-  controller.updateProduct
-);
-
-router.delete(
-  '/:id',
-  protect,
-  authorize('admin'),
-  controller.archiveProduct
 );
 
 // ─────────────────────────────────────────────
