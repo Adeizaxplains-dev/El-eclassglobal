@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import * as productService from '../../services/productService.js';
+import * as categoryService from '../../services/categoryService.js';
 import { ProductGrid } from '../../components/product/ProductGrid.jsx';
 import { CategoryIcon } from '../../components/product/CategoryIcon.jsx';
 import { DemoProductCard } from '../../components/product/DemoProductCard.jsx';
@@ -31,12 +32,23 @@ function getProductImage(product) {
 export function Home() {
   const [featured, setFeatured] = useState(null);
   const [newArrivals, setNewArrivals] = useState(null);
+  const [categories, setCategories] = useState(null);
   const { store } = useStoreInfo();
 
   useEffect(() => {
-    productService.listProducts({ featured: 'true', limit: 12 }).then((d) => setFeatured(d.items));
-    productService.listProducts({ newArrival: 'true', limit: 8 }).then((d) => setNewArrivals(d.items));
-  }, []);
+  productService
+    .listProducts({ featured: 'true', limit: 12 })
+    .then((d) => setFeatured(d.items));
+
+  productService
+    .listProducts({ newArrival: 'true', limit: 8 })
+    .then((d) => setNewArrivals(d.items));
+
+  categoryService
+    .listCategories()
+    .then((data) => setCategories(data))
+    .catch(() => setCategories([]));
+}, []);
 
   const whatsappNumber = store?.whatsapp?.number || store?.whatsappNumber;
   const whatsappHref = whatsappNumber
@@ -175,26 +187,60 @@ export function Home() {
       {/* =========================================================
           SHOP BY CATEGORY
       ========================================================== */}
-      <section className="container-page py-14">
-        <h2 className="font-display text-2xl font-bold text-charcoal">Shop by Category</h2>
-        <p className="mt-2 text-sm text-muted">Find exactly what you're looking for.</p>
+  <section className="container-page py-14">
+  <h2 className="font-display text-2xl font-bold text-charcoal">
+    Shop by Category
+  </h2>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {HOMEPAGE_CATEGORIES.map((c) => (
-            <Link
-              key={c.slug}
-              to={`/shop?category=${encodeURIComponent(c.slug)}`}
-              className="group rounded-xl border border-border bg-surface p-5 transition hover:border-primary/40 hover:shadow-card"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-black text-white transition group-hover:bg-primary">
-                <CategoryIcon icon={c.icon} className="h-5 w-5" />
+  <p className="mt-2 text-sm text-muted">
+    Find exactly what you're looking for.
+  </p>
+
+  <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+    {(categories || []).map((c) => {
+      const fallback = HOMEPAGE_CATEGORIES.find(
+        (item) => item.slug === c.slug
+      );
+
+      return (
+        <Link
+          key={c._id || c.slug}
+          to={`/shop?category=${encodeURIComponent(c.slug)}`}
+          className="group overflow-hidden rounded-xl border border-border bg-surface transition hover:border-primary/40 hover:shadow-card"
+        >
+          <div className="relative aspect-[16/9] overflow-hidden bg-black">
+            {c.imageUrl ? (
+              <img
+                src={c.imageUrl}
+                alt={c.name}
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-white">
+                <CategoryIcon
+                  icon={fallback?.icon || 'package'}
+                  className="h-10 w-10"
+                />
               </div>
-              <p className="mt-4 text-sm font-semibold text-charcoal">{c.name}</p>
-              <p className="mt-1 text-xs text-muted">{c.blurb}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
+            )}
+          </div>
+
+          <div className="p-5">
+            <p className="text-sm font-semibold text-charcoal">
+              {c.name}
+            </p>
+
+            <p className="mt-1 text-xs text-muted">
+              {c.description ||
+                fallback?.blurb ||
+                'Explore our latest gadgets'}
+            </p>
+          </div>
+        </Link>
+      );
+    })}
+  </div>
+</section>
 
       {/* =========================================================
           TRENDING NOW
